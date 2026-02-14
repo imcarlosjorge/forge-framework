@@ -61,6 +61,12 @@ importers:
         specifier: ~5.9.3
         version: 5.9.3
 
+  apps/backend/src/types:
+    devDependencies:
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
+
   apps/frontend:
     dependencies:
       react:
@@ -109,6 +115,12 @@ importers:
       vite:
         specifier: ^7.2.4
         version: 7.3.1(@types/node@24.10.12)(tsx@4.21.0)
+
+  packages/shared:
+    devDependencies:
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
 
 packages:
 
