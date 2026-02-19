@@ -4,9 +4,6 @@ import jwt from '@fastify/jwt';
 // import cookie from '@fastify/cookie'; // opcional
 import type { FastifyInstance } from "fastify";
 
-import dotenv from 'dotenv';
-dotenv.config();
-
 export const app: FastifyInstance = fastify({ logger: true });
 
 const jwtSecret = process.env.JWT_SECRET;

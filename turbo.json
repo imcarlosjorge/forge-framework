@@ -6,8 +6,11 @@
       "outputs": ["dist/**"]
     },
     "dev": {
+      "dependsOn": [],
+      "outputs": [],
       "cache": false,
-      "persistent": true// mexer pra colocar em qualquer porta
+      "persistent": true,
+      "env": ["PORT", "JWT_SECRET", "VITE_PORT"]
     },
     "lint": {},
     "test": {}

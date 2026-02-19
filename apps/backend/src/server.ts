@@ -1,9 +1,10 @@
 // AQUI ELE PEGA TYPESCRIPT já compilado, por isso está em JS
 // NÃO ALTERE
+console.log('DEBUG PORT:', process.env.PORT);
+
 import { app, registerPlugins } from "./app.config.js";
 import { routes } from "./routes/routes.js";
-import dotenv from 'dotenv';
-dotenv.config();
+
 
 async function main() {
     try {
@@ -13,19 +14,19 @@ async function main() {
         await routes.healthRoute(app);
         await routes.initialRoute(app);
 
-        // pega a porta do .env
-        const portEnv = process.env.PORT;
+        // pega a porta do env (flag do Forge ou .env)
+        const rawPort = process.env.PORT;
 
-        if (!portEnv) {
-            console.error("Erro: a variável de ambiente PORT não está definida. O servidor não vai iniciar.");
-            process.exit(1); // encerra o processo sem subir
-        };
+        const port =
+            rawPort && !Number.isNaN(Number(rawPort))
+                ? Number(rawPort)
+                : 3333;
 
-        const port = Number(portEnv);
+        console.log('🔎 PORT efetiva usada:', port);
 
         // start do servidor
         await app.listen({ port });
-        console.log(`Server running!!!`);
+        console.log(`Server running on port ${port}`);
     } catch (err) {
         console.error("Não foi possível iniciar o servidor:", err);
         process.exit(1);
