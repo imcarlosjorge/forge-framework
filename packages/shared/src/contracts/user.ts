@@ -1,2 +1,2 @@
 // só contratos de API (request/response + schemas)
-export * from "../schemas/user";
+export * from "../schemas/user.js";

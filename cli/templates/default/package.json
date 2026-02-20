@@ -1,0 +1,15 @@
+{
+  "name": "forge-project",
+  "private": true,
+  "packageManager": "pnpm@10.29.1",
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "dev:web": "turbo run dev --parallel --filter=frontend",
+    "dev:api": "turbo run dev --parallel --filter=backend",
+    "dev:full": "pnpm run dev:web & pnpm run dev:api",
+    "build": "turbo run build"
+  },
+  "devDependencies": {
+    "turbo": "^2.8.10"
+  }
+}
