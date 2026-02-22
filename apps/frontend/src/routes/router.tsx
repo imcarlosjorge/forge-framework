@@ -5,6 +5,6 @@ import { Home } from "../pages/Home";
 import { Login } from "../pages/Login";
 
 export const router = createBrowserRouter([
-    { path: "/", element: <Home /> },
-    { path: "/login", element: <Login /> },
+  { path: "/", element: <Home /> },
+  { path: "/login", element: <Login /> },
 ]);

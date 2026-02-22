@@ -1,0 +1,11 @@
+# Ignorar lockfiles
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Ignorar pastas de build ou dependências
+node_modules/
+dist/
+
+# Ignorar arquivos gerados automaticamente
+*.d.ts

@@ -302,10 +302,10 @@ program
     console.log('\n🎉 Ambiente pronto pra rodar o Forge!🔥');
   });
 
-// ------------------------ NEW ------------------------
+// ------------------------ INIT ------------------------
 
 program
-  .command('new <name>')
+  .command('init <name>')
   .description('Cria um novo projeto Forge baseado no framework completo')
   .action(async (name: string) => {
     const targetDir = path.resolve(process.cwd(), name);
@@ -354,6 +354,377 @@ VITE_API_URL=http://localhost:3001`
 
     console.log('\n🎉 Projeto Forge criado com sucesso!');
     console.log(`👉 Agora rode:\n   cd ${name}\n   forge dev full`);
+  });
+
+// ------------------------ INFO ------------------------
+
+program
+  .command('info')
+  .description('Mostra informações do ambiente e do projeto Forge')
+  .action(() => {
+    console.log('ℹ️  Forge Info\n');
+
+    function getCmdVersion(cmd: string, args: string[]) {
+      const res = spawnSync(cmd, args, { shell: true, encoding: 'utf-8' });
+      if (res.status === 0) {
+        return res.stdout?.trim() || 'OK';
+      }
+      return 'não encontrado';
+    }
+
+    const nodeVersion = getCmdVersion('node', ['-v']);
+    const pnpmVersion = getCmdVersion('pnpm', ['-v']);
+    const turboVersion = getCmdVersion('pnpm', ['exec', 'turbo', '--version']);
+
+    const root = process.cwd();
+    const frontendDir = path.join(root, 'apps/frontend');
+    const backendDir = path.join(root, 'apps/backend');
+
+    const frontendEnv = path.join(frontendDir, '.env');
+    const backendEnv = path.join(backendDir, '.env');
+
+    const frontendPort = getEnvVar(frontendEnv, 'VITE_PORT', 5173);
+    const backendPort = getEnvVar(backendEnv, 'PORT', 3001);
+
+    console.log(`Node: ${nodeVersion}`);
+    console.log(`pnpm: ${pnpmVersion}`);
+    console.log(`turbo: ${turboVersion}\n`);
+
+    console.log(`📁 Root: ${root}`);
+    console.log(`📦 Frontend: ${fs.existsSync(frontendDir) ? frontendDir : 'não encontrado'}`);
+    console.log(`📦 Backend: ${fs.existsSync(backendDir) ? backendDir : 'não encontrado'}\n`);
+
+    console.log(`🌐 Frontend port: ${frontendPort}`);
+    console.log(`🖥️ Backend port: ${backendPort}\n`);
+
+    if (!fs.existsSync(frontendEnv)) {
+      console.log('⚠️  .env do frontend não encontrado');
+    }
+    if (!fs.existsSync(backendEnv)) {
+      console.log('⚠️  .env do backend não encontrado');
+    }
+  });
+
+// ------------------------ PORTS ------------------------
+
+program
+  .command('ports')
+  .description('Mostra as portas do frontend/backend e verifica se estão livres')
+  .option('--port <number>', 'Verifica se uma porta específica está livre', (v) => parseInt(v, 10))
+  .action(async (opts) => {
+    function checkPort(port: number): Promise<boolean> {
+      return new Promise((resolve) => {
+        const server = net.createServer()
+          .once('error', () => resolve(false))
+          .once('listening', () => {
+            server.close();
+            resolve(true);
+          })
+          .listen(port);
+      });
+    }
+
+    // Caso: usuário quer checar uma porta específica
+    if (opts.port) {
+      const free = await checkPort(opts.port);
+      console.log(
+        free
+          ? `✅ Porta ${opts.port} está livre`
+          : `🚨 Porta ${opts.port} está em uso`
+      );
+      return;
+    }
+
+    // Caso padrão: mostra portas do projeto
+    const frontendEnv = path.join(process.cwd(), 'apps/frontend/.env');
+    const backendEnv = path.join(process.cwd(), 'apps/backend/.env');
+
+    const frontendPort = getEnvVar(frontendEnv, 'VITE_PORT', 5173);
+    const backendPort = getEnvVar(backendEnv, 'PORT', 3001);
+
+    const frontendFree = await checkPort(frontendPort);
+    const backendFree = await checkPort(backendPort);
+
+    console.log('\n🔌 Portas do Forge:\n');
+
+    console.log(
+      frontendFree
+        ? `🚀 Frontend: ${frontendPort} (livre)`
+        : `🚨 Frontend: ${frontendPort} (em uso)`
+    );
+
+    console.log(
+      backendFree
+        ? `🖥️ Backend: ${backendPort} (livre)`
+        : `🚨 Backend: ${backendPort} (em uso)`
+    );
+
+    if (!frontendFree || !backendFree) {
+      console.log('\n💡 Dica: você pode trocar as portas com:');
+      console.log('   forge dev frontend --port <nova>');
+      console.log('   forge dev backend --port <nova>');
+      console.log('   forge dev full --frontend-port <nova> --backend-port <nova>');
+    }
+
+    console.log('');
+  });
+
+// ------------------------ INSTALL ------------------------
+
+program
+  .command('install')
+  .description('Instala as dependências do projeto Forge (workspace inteiro)')
+  .action(() => {
+    console.log('📦 Forge Install\n');
+
+    function checkCmd(name: string, cmd: string, args: string[], hint: string): boolean {
+      const res = spawnSync(cmd, args, { shell: true, stdio: 'ignore' });
+      if (res.status === 0) {
+        console.log(`✅ ${name} OK`);
+        return true;
+      } else {
+        console.error(`❌ ${name} não encontrado`);
+        console.log(`💡 Como resolver: ${hint}\n`);
+        return false;
+      }
+    }
+
+    let ok = true;
+
+    ok = checkCmd('Node.js', 'node', ['-v'], 'Instale em https://nodejs.org (recomendado LTS)') && ok;
+    ok = checkCmd('pnpm', 'pnpm', ['-v'], 'npm i -g pnpm') && ok;
+    ok = checkCmd('Turbo (local)', 'pnpm', ['exec', 'turbo', '--version'], 'pnpm add -Dw turbo') && ok;
+
+    if (!ok) {
+      console.error('🚨 Corrija os erros acima e rode novamente: forge install');
+      process.exit(1);
+    }
+
+    console.log('\n📥 Instalando dependências do workspace...');
+    const res = spawnSync('pnpm', ['install'], {
+      cwd: process.cwd(),
+      stdio: 'inherit',
+      shell: true
+    });
+
+    if (res.status !== 0) {
+      console.error('\n❌ Falha ao instalar dependências.');
+      process.exit(1);
+    }
+
+    console.log('\n🎉 Dependências instaladas com sucesso!');
+    console.log('👉 Próximo passo: forge dev full');
+  });
+
+// ------------------------ STOP ------------------------
+
+program
+  .command('stop [target]')
+  .description('Para serviços do Forge (frontend, backend) ou mata processos por porta')
+  .option('--port <number>', 'Mata processo na porta específica', (v) => parseInt(v, 10))
+  .action((target: 'frontend' | 'backend' | undefined, opts) => {
+    console.log('🛑 Forge Stop\n');
+
+    const isWindows = process.platform === 'win32';
+    if (isWindows) {
+      console.warn('⚠️  forge stop ainda não tem suporte nativo no Windows (usa lsof).');
+      console.warn('   Dica: use WSL ou encerre os processos manualmente.');
+      return;
+    }
+
+    function getPort(envPath: string, key: string, defaultVal: number) {
+      if (!fs.existsSync(envPath)) return defaultVal;
+      const content = fs.readFileSync(envPath, 'utf-8');
+      const match = content.match(new RegExp(`^${key}=(\\d+)`, 'm'));
+      return match ? Number(match[1]) : defaultVal;
+    }
+
+    function killPort(port: number): boolean {
+      const res = spawnSync('bash', ['-c', `lsof -ti :${port} | xargs -r kill -9`], {
+        stdio: 'ignore'
+      });
+      return res.status === 0;
+    }
+
+    const frontendEnv = path.join(process.cwd(), 'apps/frontend/.env');
+    const backendEnv = path.join(process.cwd(), 'apps/backend/.env');
+
+    const frontendPort = getPort(frontendEnv, 'VITE_PORT', 5173);
+    const backendPort = getPort(backendEnv, 'PORT', 3001);
+
+    const targets: { label: string; port: number }[] = [];
+
+    if (opts.port) {
+      targets.push({ label: `porta ${opts.port}`, port: opts.port });
+    } else if (target === 'frontend') {
+      targets.push({ label: 'frontend', port: frontendPort });
+    } else if (target === 'backend') {
+      targets.push({ label: 'backend', port: backendPort });
+    } else {
+      targets.push({ label: 'frontend', port: frontendPort });
+      targets.push({ label: 'backend', port: backendPort });
+    }
+
+    let killedAny = false;
+
+    for (const t of targets) {
+      console.log(`🔍 Tentando parar ${t.label} (porta ${t.port})...`);
+      const killed = killPort(t.port);
+
+      if (killed) {
+        console.log(`✅ ${t.label} parado (porta ${t.port})`);
+        killedAny = true;
+      } else {
+        console.log(`ℹ️  Nenhum processo encontrado na porta ${t.port}`);
+      }
+    }
+
+    if (!killedAny) {
+      console.log('\n😴 Nada para parar. Tudo limpo.');
+    } else {
+      console.log('\n🧹 Serviços finalizados. \n\rPode rodar o comando: forge dev full');
+    }
+  });
+
+// ------------------------ CLEAN ------------------------
+program
+  .command('clean [target]')
+  .description('Limpa caches, builds e node_modules do projeto')
+  .option('--all', 'Limpa tudo (root + frontend + backend)')
+  .option('--force', 'Não pede confirmação')
+  .action(async (target: 'frontend' | 'backend' | undefined, opts) => {
+    console.log('🧹 Forge Clean\n');
+
+    const paths: string[] = [];
+
+    function collect(dir: string) {
+      const targets = ['node_modules', 'dist', 'build', '.turbo', '.vite', '.cache'];
+      for (const folder of targets) {
+        const full = path.join(dir, folder);
+        if (fs.existsSync(full)) paths.push(full);
+      }
+    }
+
+    const root = process.cwd();
+    const frontendDir = path.join(root, 'apps/frontend');
+    const backendDir = path.join(root, 'apps/backend');
+
+    if (opts.all || !target) {
+      collect(root);
+      collect(frontendDir);
+      collect(backendDir);
+    } else if (target === 'frontend') {
+      collect(frontendDir);
+    } else if (target === 'backend') {
+      collect(backendDir);
+    }
+
+    if (paths.length === 0) {
+      console.log('✨ Nada para limpar.');
+      return;
+    }
+
+    console.log('🗑️  Itens que serão removidos:');
+    paths.forEach((p) => console.log(' -', p));
+
+    if (!opts.force) {
+      process.stdout.write('\n⚠️  Confirma limpeza? (y/N): ');
+
+      await new Promise<void>((resolve) => {
+        process.stdin.resume();
+        process.stdin.setEncoding('utf-8');
+
+        process.stdin.once('data', (data) => {
+          const answer = data.toString().trim().toLowerCase();
+          if (answer !== 'y' && answer !== 'yes') {
+            console.log('❌ Cancelado.');
+            process.exit(0);
+          }
+          resolve();
+        });
+      });
+    }
+
+    console.log('\n🚀 Iniciando limpeza...\n');
+
+    const total = paths.length;
+
+    function renderProgress(current: number, total: number, label: string) {
+      const percent = Math.round((current / total) * 100);
+      const size = 24;
+      const filled = Math.round((percent / 100) * size);
+      const bar = '█'.repeat(filled) + '░'.repeat(size - filled);
+
+      process.stdout.clearLine(0);
+      process.stdout.cursorTo(0);
+      process.stdout.write(
+        `[${bar}] ${percent}% • Apagando: ${label.padEnd(50).slice(0, 50)}`
+      );
+    }
+
+    for (const [i, p] of paths.entries()) {
+      renderProgress(i + 1, total, path.relative(root, p));
+
+      try {
+        fs.rmSync(p, { recursive: true, force: true });
+      } catch (err) {
+        console.error(`\n❌ Erro ao remover ${p}`, err);
+      }
+
+      await new Promise((r) => setTimeout(r, 50));
+    }
+
+    process.stdout.write('\n\n🎉 Limpeza concluída com sucesso!\n\n');
+    console.log('👉 Agora você pode rodar: forge install\n');
+
+    // garante que o processo finalize e devolva o prompt
+    process.stdin.pause();
+    process.exit(0);
+  });
+
+// ------------------------ LINT ------------------------
+
+program
+  .command('lint [target]')
+  .description('Roda lint, typecheck e validações do projeto')
+  .action((target: 'frontend' | 'backend' | undefined) => {
+    console.log('🧪 Forge Lint\n');
+
+    function run(dir: string, label: string) {
+      console.log(`\n🔍 Lint em ${label}`);
+
+      const scripts = ['lint', 'typecheck', 'format:check'];
+
+      scripts.forEach((script) => {
+        console.log(`➡️  ${label}: ${script}`);
+        const res = spawnSync('pnpm', ['run', script], {
+          cwd: dir,
+          stdio: 'inherit',
+          shell: true
+        });
+
+        if (res.status !== 0) {
+          console.error(`❌ Falhou em ${label}: ${script}`);
+          process.exit(1);
+        }
+      });
+    }
+
+    const root = process.cwd();
+    const frontendDir = path.join(root, 'apps/frontend');
+    const backendDir = path.join(root, 'apps/backend');
+
+    if (!target) {
+      run(frontendDir, 'frontend');
+      run(backendDir, 'backend');
+      console.log('\n✅ Lint passou em tudo!');
+      return;
+    }
+
+    if (target === 'frontend') run(frontendDir, 'frontend');
+    if (target === 'backend') run(backendDir, 'backend');
+
+    console.log('\n✅ Lint concluído com sucesso.');
   });
 
 program.parse();

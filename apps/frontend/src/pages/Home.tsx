@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Card, Button, Container } from "react-bootstrap";
 import styles from "../App.module.css";
 
@@ -6,14 +6,16 @@ export const Home = () => {
   const [forjas, setForjas] = useState(0);
   const [animar, setAnimar] = useState(false);
 
-  useEffect(() => {
-    if (forjas === 0) return;
+  const incrementarForjas = () => {
+    setForjas((prev) => {
+      const next = prev + 1;
 
-    setAnimar(true);
-    const timer = setTimeout(() => setAnimar(false), 300);
+      setAnimar(true);
+      setTimeout(() => setAnimar(false), 300);
 
-    return () => clearTimeout(timer);
-  }, [forjas]);
+      return next;
+    });
+  };
 
   return (
     <main className={styles.home_container}>
@@ -45,7 +47,7 @@ export const Home = () => {
               <Button
                 variant="outline-primary"
                 size="lg"
-                onClick={() => setForjas((prev) => prev + 1)}
+                onClick={incrementarForjas}
               >
                 Forjar agora 🔨
               </Button>

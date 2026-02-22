@@ -2,14 +2,14 @@ import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 import importPlugin from "eslint-plugin-import";
 
-export default [
+export const config = [
   // 🔒 SEMPRE no topo (vale pra frontend + backend)
   {
     ignores: [
-      "**/dist/**",          // builds
-      "**/node_modules/**",  // deps em qualquer pacote
-      "**/*.d.ts",           // tipos gerados
-      "**/.turbo/**",        // cache do turbo
+      "**/dist/**", // builds
+      "**/node_modules/**", // deps em qualquer pacote
+      "**/*.d.ts", // tipos gerados
+      "**/.turbo/**", // cache do turbo
     ],
   },
 

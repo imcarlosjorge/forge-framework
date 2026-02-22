@@ -4,6 +4,7 @@ module.exports = {
     "**/node_modules/**",
     "**/dist/**",
     "**/build/**",
+    "**/*.d.ts",
   ],
   rules: {
     'rule-empty-line-before': null,

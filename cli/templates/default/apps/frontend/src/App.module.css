@@ -1,7 +1,7 @@
 .container_login {
-  min-height: 100vh;      /* ocupa a tela toda */
+  min-height: 100vh; /* ocupa a tela toda */
   display: flex;
-  align-items: center;   /* centraliza na vertical */
+  align-items: center; /* centraliza na vertical */
   justify-content: center; /* centraliza na horizontal */
 }
 .login_box {
@@ -10,7 +10,7 @@
   background: #fff;
   padding: 24px;
   border-radius: 8px;
-  box-shadow: 0 0 20px rgba(0,0,0,0.1);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
 }
 
 .home_container {
@@ -43,7 +43,9 @@
   background: #020617 !important;
   color: #e5e7eb;
   border: 1px solid #1e293b;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .home_card:hover {
@@ -75,7 +77,9 @@
   font-weight: bold;
   margin: 16px 0 20px;
   letter-spacing: 2px;
-  transition: transform 0.2s ease, text-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    text-shadow 0.2s ease;
 }
 .counter_pop {
   transform: scale(1.2);
