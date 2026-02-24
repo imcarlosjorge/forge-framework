@@ -84,6 +84,34 @@ function fixTurboConfigIfNeeded(opts: { fix?: boolean }) {
   }
 }
 
+function parseEnv(file: string): Record<string, string> {
+  if (!fs.existsSync(file)) return {};
+
+  return Object.fromEntries(
+    fs.readFileSync(file, "utf-8")
+      .split("\n")
+      .map(l => l.trim())
+      .filter(l => l && !l.startsWith("#"))
+      .map(line => {
+        const [key, ...rest] = line.split("=");
+        return [key, rest.join("=")];
+      })
+  );
+}
+
+function writeEnvExample(file: string, keys: string[]) {
+  const content = keys.map(k => `${k}=`).join("\n");
+  fs.writeFileSync(file, content + "\n");
+}
+
+function writeEnv(file: string, values: Record<string, string>) {
+  const content = Object.entries(values)
+    .map(([k, v]) => `${k}=${v ?? ""}`)
+    .join("\n");
+
+  fs.writeFileSync(file, content + "\n");
+}
+
 // ------------------------ CLI ------------------------
 
 program
@@ -336,17 +364,35 @@ JWT_SECRET=${crypto.randomBytes(32).toString('hex')}`
 VITE_API_URL=http://localhost:3001`
     );
 
-    const installDeps = (dir: string) => {
-      console.log(`📦 Instalando dependências em ${dir}...`);
-      const res = spawnSync('pnpm', ['install', '--prefix', dir], { stdio: 'inherit', shell: true });
-      if (res.status !== 0) process.exit(1);
+    const installDeps = (dir: string, label: string) => {
+      console.log(`📦 Instalando dependências do ${label}...`);
+
+      const res = spawnSync('pnpm', ['install', '--prefix', dir, '--silent'], {
+        stdio: 'pipe',
+        shell: true,
+      });
+
+      if (res.status !== 0) {
+        console.error(`❌ Erro ao instalar dependências do ${label}:`);
+        console.error(res.stderr?.toString() || 'Erro desconhecido');
+        process.exit(1);
+      }
+
+      console.log(`✅ ${label} pronto`);
     };
 
-    installDeps(path.join(targetDir, 'apps/backend'));
-    installDeps(path.join(targetDir, 'apps/frontend'));
+    installDeps(path.join(targetDir, 'apps/backend'), 'backend');
+    installDeps(path.join(targetDir, 'apps/frontend'), 'frontend');
 
     console.log('🩺 Rodando forge doctor --fix...');
     spawnSync('node', [path.join(__dirname, '../dist/index.js'), 'doctor', '--fix'], {
+      cwd: targetDir,
+      stdio: 'inherit',
+      shell: true
+    });
+
+    console.log('🌱 Rodando forge env sync...');
+    spawnSync('node', [path.join(__dirname, '../dist/index.js'), 'env', 'sync'], {
       cwd: targetDir,
       stdio: 'inherit',
       shell: true
@@ -727,4 +773,76 @@ program
     console.log('\n✅ Lint concluído com sucesso.');
   });
 
-program.parse();
+//--------------- ENV SYNC --------------------
+
+program
+  .command("env sync")
+  .description("Sincroniza .env e .env.example (frontend e backend)")
+  .action(() => {
+    const root = process.cwd();
+    const apps = ["backend", "frontend"];
+
+    for (const app of apps) {
+      const dir = path.join(root, "apps", app);
+      if (!fs.existsSync(dir)) {
+        console.warn(`⚠️  ${app} não encontrado, pulando...`);
+        continue;
+      }
+
+      const envPath = path.join(dir, ".env");
+      const examplePath = path.join(dir, ".env.example");
+
+      const env = parseEnv(envPath);
+      const example = parseEnv(examplePath);
+
+      const keys = Array.from(
+        new Set([...Object.keys(env), ...Object.keys(example)])
+      );
+
+      const newEnv: Record<string, string> = {};
+      for (const key of keys) {
+        newEnv[key] = env[key] ?? "";
+      }
+
+      writeEnv(envPath, newEnv);
+      writeEnvExample(examplePath, keys);
+
+      console.log(`✅ ${app}: .env e .env.example sincronizados`);
+    }
+
+    console.log("\n🌱 Env sync concluído sem vazar segredos.");
+  });
+
+//------------------FORMAT -----------------
+program
+  .command("format")
+  .description("Formata frontend e backend com Prettier")
+  .option("--check", "Apenas verifica (não escreve)")
+  .action(async (opts) => {
+    console.log("🎨 Forge Format\n");
+
+    const mode = opts.check ? "--check" : "--write";
+
+    function runPrettier(label: string, cwd: string) {
+      console.log(`🧹 Formatando ${label}...`);
+      const res = spawnSync("pnpm", ["exec", "prettier", mode, "."], {
+        cwd,
+        stdio: "inherit",
+        shell: true,
+      });
+
+      if (res.status !== 0) {
+        console.error(`❌ Falhou ao formatar ${label}`);
+        process.exit(1);
+      }
+
+      console.log(`✅ ${label} formatado`);
+    }
+
+    runPrettier("frontend", path.join(process.cwd(), "apps/frontend"));
+    runPrettier("backend", path.join(process.cwd(), "apps/backend"));
+
+    console.log("\n🎉 Código formatado com sucesso!");
+  });
+
+program.parse(process.argv)
