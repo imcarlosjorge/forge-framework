@@ -638,10 +638,17 @@ program
   .description('Limpa caches, builds e node_modules do projeto')
   .option('--all', 'Limpa tudo (root + frontend + backend)')
   .option('--force', 'Não pede confirmação')
-  .action(async (target: 'frontend' | 'backend' | undefined, opts) => {
-    console.log('🧹 Forge Clean\n');
+  .option('--json', 'Saída em JSON (para CI/CD)')
+  .action(async (target: 'frontend' | 'backend' | undefined, opts: { all?: boolean; force?: boolean; json?: boolean }) => {
+    const isJson = Boolean(opts.json);
+
+    if (!isJson) {
+      console.log('🧹 Forge Clean\n');
+    }
 
     const paths: string[] = [];
+    const cleaned: string[] = [];
+    const errors: { path: string; error: string }[] = [];
 
     function collect(dir: string) {
       const targets = ['node_modules', 'dist', 'build', '.turbo', '.vite', '.cache'];
@@ -666,21 +673,28 @@ program
     }
 
     if (paths.length === 0) {
+      if (isJson) {
+        console.log(JSON.stringify({ success: true, cleaned: [], errors: [] }, null, 2));
+        process.exit(0);
+      }
+
       console.log('✨ Nada para limpar.');
       return;
     }
 
-    console.log('🗑️  Itens que serão removidos:');
-    paths.forEach((p) => console.log(' -', p));
+    if (!isJson) {
+      console.log('🗑️  Itens que serão removidos:');
+      paths.forEach((p) => console.log(' -', p));
+    }
 
-    if (!opts.force) {
+    if (!opts.force && !isJson) {
       process.stdout.write('\n⚠️  Confirma limpeza? (y/N): ');
 
       await new Promise<void>((resolve) => {
         process.stdin.resume();
         process.stdin.setEncoding('utf-8');
 
-        process.stdin.once('data', (data) => {
+        process.stdin.once('data', (data: string | Buffer) => {
           const answer = data.toString().trim().toLowerCase();
           if (answer !== 'y' && answer !== 'yes') {
             console.log('❌ Cancelado.');
@@ -691,11 +705,15 @@ program
       });
     }
 
-    console.log('\n🚀 Iniciando limpeza...\n');
+    if (!isJson) {
+      console.log('\n🚀 Iniciando limpeza...\n');
+    }
 
     const total = paths.length;
 
     function renderProgress(current: number, total: number, label: string) {
+      if (isJson) return;
+
       const percent = Math.round((current / total) * 100);
       const size = 24;
       const filled = Math.round((percent / 100) * size);
@@ -713,17 +731,37 @@ program
 
       try {
         fs.rmSync(p, { recursive: true, force: true });
-      } catch (err) {
-        console.error(`\n❌ Erro ao remover ${p}`, err);
+        cleaned.push(path.relative(root, p));
+      } catch (err: any) {
+        errors.push({
+          path: path.relative(root, p),
+          error: err?.message ?? 'Erro desconhecido'
+        });
       }
 
-      await new Promise((r) => setTimeout(r, 50));
+      if (!isJson) {
+        await new Promise((r) => setTimeout(r, 50));
+      }
+    }
+
+    if (isJson) {
+      console.log(
+        JSON.stringify(
+          {
+            success: errors.length === 0,
+            cleaned,
+            errors
+          },
+          null,
+          2
+        )
+      );
+      process.exit(errors.length > 0 ? 1 : 0);
     }
 
     process.stdout.write('\n\n🎉 Limpeza concluída com sucesso!\n\n');
     console.log('👉 Agora você pode rodar: forge install\n');
 
-    // garante que o processo finalize e devolva o prompt
     process.stdin.pause();
     process.exit(0);
   });
@@ -843,6 +881,143 @@ program
     runPrettier("backend", path.join(process.cwd(), "apps/backend"));
 
     console.log("\n🎉 Código formatado com sucesso!");
+  });
+
+// ------------------------ BUILD ------------------------
+
+program
+  .command('build')
+  .description('Gera build de produção do monorepo (frontend + backend)')
+  .option('--json', 'Saída em JSON (para CI/CD)')
+  .option('--skip-checks', 'Pula verificações de ambiente')
+  .action(async (opts: { json?: boolean; skipChecks?: boolean }) => {
+    const isJson = Boolean(opts.json);
+    const start = Date.now();
+
+    if (!isJson) {
+      console.log('🏗️ Forge Build\n');
+    }
+
+    function checkCmd(name: string, cmd: string, args: string[]): boolean {
+      const res = spawnSync(cmd, args, { shell: true, stdio: 'ignore' });
+      if (res.status === 0) {
+        if (!isJson) console.log(`✅ ${name} OK`);
+        return true;
+      } else {
+        if (!isJson) console.error(`❌ ${name} não encontrado`);
+        return false;
+      }
+    }
+
+    if (!opts.skipChecks) {
+      let ok = true;
+
+      ok = checkCmd('Node.js', 'node', ['-v']) && ok;
+      ok = checkCmd('pnpm', 'pnpm', ['-v']) && ok;
+      ok = checkCmd('Turbo (local)', 'pnpm', ['exec', 'turbo', '--version']) && ok;
+
+      if (!ok) {
+        if (isJson) {
+          console.log(
+            JSON.stringify(
+              { success: false, error: 'Ambiente incompleto para build' },
+              null,
+              2
+            )
+          );
+        } else {
+          console.error('\n🚨 Ambiente incompleto para build.');
+          console.log('💡 Rode: forge doctor --fix');
+        }
+        process.exit(1);
+      }
+    }
+
+    if (!isJson) {
+      console.log('\n🚀 Rodando build do monorepo (Turbo)...\n');
+    }
+
+    const res = spawnSync('pnpm', ['exec', 'turbo', 'run', 'build'], {
+      cwd: process.cwd(),
+      stdio: isJson ? 'pipe' : 'inherit',
+      shell: true
+    });
+
+    if (res.status !== 0) {
+      if (isJson) {
+        console.log(
+          JSON.stringify(
+            {
+              success: false,
+              error: 'Falha no turbo run build',
+              stdout: res.stdout?.toString(),
+              stderr: res.stderr?.toString()
+            },
+            null,
+            2
+          )
+        );
+      } else {
+        console.error('\n❌ Build falhou.');
+      }
+      process.exit(1);
+    }
+
+    const root = process.cwd();
+    const frontendDist = path.join(root, 'apps/frontend/dist');
+    const backendDist = path.join(root, 'apps/backend/dist');
+
+    const frontendOk = fs.existsSync(frontendDist);
+    const backendOk = fs.existsSync(backendDist);
+
+    if (!frontendOk || !backendOk) {
+      const errorMsg = 'Build finalizou mas artefatos não foram encontrados';
+
+      if (isJson) {
+        console.log(
+          JSON.stringify(
+            {
+              success: false,
+              error: errorMsg,
+              frontendDist: frontendOk ? frontendDist : null,
+              backendDist: backendOk ? backendDist : null
+            },
+            null,
+            2
+          )
+        );
+      } else {
+        console.error('\n❌ ' + errorMsg);
+        if (!frontendOk) console.error(' - apps/frontend/dist não encontrado');
+        if (!backendOk) console.error(' - apps/backend/dist não encontrado');
+      }
+
+      process.exit(1);
+    }
+
+    const durationMs = Date.now() - start;
+
+    if (isJson) {
+      console.log(
+        JSON.stringify(
+          {
+            success: true,
+            frontend: 'apps/frontend/dist',
+            backend: 'apps/backend/dist',
+            durationMs
+          },
+          null,
+          2
+        )
+      );
+      process.exit(0);
+    }
+
+    console.log('\n📦 Artefatos gerados:');
+    console.log(' - apps/frontend/dist');
+    console.log(' - apps/backend/dist');
+
+    console.log(`\n🎉 Build concluído em ${durationMs}ms`);
   });
 
 program.parse(process.argv)
