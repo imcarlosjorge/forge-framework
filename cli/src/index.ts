@@ -112,6 +112,68 @@ function writeEnv(file: string, values: Record<string, string>) {
   fs.writeFileSync(file, content + "\n");
 }
 
+function runScaffold(baseDir: string) {
+  const folders: Record<string, string> = {
+    // Frontend
+    "apps/frontend/src/assets": "Assets estáticos do frontend (imagens, ícones, fontes, etc).",
+    "apps/frontend/src/components": "Componentes de UI reutilizáveis.",
+    "apps/frontend/src/hooks": "Hooks customizados do React.",
+    "apps/frontend/src/layout": "Layouts da aplicação (header, footer, etc).",
+    "apps/frontend/src/pages": "Páginas do frontend (rotas principais).",
+    "apps/frontend/src/providers": "Providers de contexto (AuthProvider, ThemeProvider).",
+    "apps/frontend/src/routes": "Definição das rotas do frontend.",
+    "apps/frontend/src/services": "Serviços de comunicação com APIs.",
+    "apps/frontend/src/styles": "Estilos globais, temas e tokens de design.",
+    "apps/frontend/src/lib": "Helpers e utilitários genéricos.",
+    "apps/frontend/src/config": "Configurações do frontend (env mapeado, feature flags).",
+    "apps/frontend/src/store": "Estado global da aplicação.",
+    "apps/frontend/src/tests": "Testes do frontend.",
+
+    // Backend
+    "apps/backend/src/controllers": "Controllers HTTP (entrada da API).",
+    "apps/backend/src/database": "Configuração de banco, migrations e seeds.",
+    "apps/backend/src/middlewares": "Middlewares da API.",
+    "apps/backend/src/repositories": "Repositórios de acesso a dados.",
+    "apps/backend/src/routes": "Definição das rotas da API.",
+    "apps/backend/src/services": "Serviços de regra de negócio.",
+    "apps/backend/src/types": "Tipagens globais do backend.",
+    "apps/backend/src/modules": "Módulos do domínio (auth, users, billing).",
+    "apps/backend/src/jobs": "Jobs assíncronos, filas e cron.",
+    "apps/backend/src/utils": "Helpers genéricos do backend.",
+    "apps/backend/src/config": "Configurações do backend (env, cors, etc).",
+    "apps/backend/src/tests": "Testes do backend.",
+
+    // Shared
+    "packages/shared/src/contracts": "Contratos entre frontend e backend.",
+    "packages/shared/src/domain": "Entidades de domínio compartilhadas.",
+    "packages/shared/src/repositories": "Interfaces de repositórios (ports).",
+    "packages/shared/src/schemas": "Schemas de validação (Zod, Yup, etc).",
+    "packages/shared/src/utils": "Utilitários compartilhados.",
+    "packages/shared/src/types": "Tipos globais compartilhados."
+  };
+
+  let created = 0;
+
+  for (const [relativePath, description] of Object.entries(folders)) {
+    const fullPath = path.join(baseDir, relativePath);
+    const keepFile = path.join(fullPath, ".gitkeep");
+
+    if (!fs.existsSync(fullPath)) {
+      fs.mkdirSync(fullPath, { recursive: true });
+    }
+
+    if (!fs.existsSync(keepFile)) {
+      fs.writeFileSync(
+        keepFile,
+        `# ${description}\n# Arquivo criado automaticamente pelo forge scaffold.\n`
+      );
+      created++;
+    }
+  }
+
+  return created;
+}
+
 // ------------------------ CLI ------------------------
 
 program
@@ -347,6 +409,10 @@ program
     console.log(`📁 Criando projeto em ${targetDir}...`);
     fs.cpSync(templateDir, targetDir, { recursive: true });
     console.log('📦 Template copiado com sucesso!');
+
+    console.log('🧱 Criando estrutura base (scaffold)...');
+    runScaffold(targetDir);
+    console.log('✅ Estrutura criada com .gitkeep\n');
 
     const crypto = await import('crypto');
 
@@ -1018,6 +1084,18 @@ program
     console.log(' - apps/backend/dist');
 
     console.log(`\n🎉 Build concluído em ${durationMs}ms`);
+  });
+
+// ------------------------ SCAFFOLD ------------------------
+
+program
+  .command("scaffold")
+  .description("Cria a estrutura de pastas do Forge com .gitkeep documentado")
+  .action(() => {
+    const root = process.cwd();
+    const created = runScaffold(root);
+
+    console.log(`\n🎉 Scaffold concluído! .gitkeep criados: ${created}`);
   });
 
 program.parse(process.argv)
