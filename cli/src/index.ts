@@ -112,7 +112,7 @@ function writeEnv(file: string, values: Record<string, string>) {
   fs.writeFileSync(file, content + "\n");
 }
 
-function runScaffold(baseDir: string) {
+function runScaffold(baseDir: string, options: { keepGitkeep?: boolean } = {}) {
   const folders: Record<string, string> = {
     // Frontend
     "apps/frontend/src/assets": "Assets estáticos do frontend (imagens, ícones, fontes, etc).",
@@ -162,12 +162,18 @@ function runScaffold(baseDir: string) {
       fs.mkdirSync(fullPath, { recursive: true });
     }
 
-    if (!fs.existsSync(keepFile)) {
-      fs.writeFileSync(
-        keepFile,
-        `# ${description}\n# Arquivo criado automaticamente pelo forge scaffold.\n`
-      );
-      created++;
+    if (options.keepGitkeep) {
+      if (!fs.existsSync(keepFile)) {
+        fs.writeFileSync(
+          keepFile,
+          `# ${description}\n# Arquivo criado automaticamente pelo forge scaffold.\n`
+        );
+        created++;
+      }
+    } else {
+      if (fs.existsSync(keepFile)) {
+        fs.rmSync(keepFile);
+      }
     }
   }
 
@@ -411,8 +417,8 @@ program
     console.log('📦 Template copiado com sucesso!');
 
     console.log('🧱 Criando estrutura base (scaffold)...');
-    runScaffold(targetDir);
-    console.log('✅ Estrutura criada com .gitkeep\n');
+    runScaffold(targetDir, { keepGitkeep: false });
+    console.log('✅ Estrutura criada\n');
 
     const crypto = await import('crypto');
 
@@ -1090,12 +1096,17 @@ program
 
 program
   .command("scaffold")
-  .description("Cria a estrutura de pastas do Forge com .gitkeep documentado")
-  .action(() => {
+  .description("Cria a estrutura de pastas do Forge")
+  .option("--gitkeep", "Mantém os arquivos .gitkeep com documentação das pastas")
+  .action((opts) => {
     const root = process.cwd();
-    const created = runScaffold(root);
+    const created = runScaffold(root, { keepGitkeep: !!opts.gitkeep });
 
-    console.log(`\n🎉 Scaffold concluído! .gitkeep criados: ${created}`);
+    console.log(
+      opts.gitkeep
+        ? `\n🎉 Scaffold concluído! .gitkeep criados: ${created}`
+        : `\n🎉 Scaffold concluído! Estrutura criada (sem .gitkeep)`
+    );
   });
 
 program.parse(process.argv)
