@@ -34,11 +34,9 @@ coverage/
 .vite/
 
 # =========================
-# Prisma
+# Turborepo cache
 # =========================
-prisma/dev.db
-prisma/*.db
-prisma/*.db-journal
+.turbo
 
 # =========================
 # Monorepo (packages)
