@@ -14,7 +14,7 @@
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
-    "noEmit": true,
+    "noEmit": false,
     "jsx": "react-jsx",
     /* Project references */
     "composite": true,
@@ -24,8 +24,10 @@
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noUncheckedSideEffectImports": true,
+    "rootDir": "src",
+    "outDir": "dist"
   },
-  "include": ["src/**/*.{ts,tsx,js,jsx}"],
+  "include": ["src/**/*.{ts,tsx}"],
   "exclude": ["node_modules"]
 }
