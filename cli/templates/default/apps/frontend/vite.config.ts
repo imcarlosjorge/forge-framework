@@ -1,10 +1,12 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    dedupe: ["react", "react-dom"], // 👈 CRÍTICO
+  },
   server: {
-    port: Number(process.env.VITE_PORT) || 5173, //5173  porta padrão do vite
+    port: Number(process.env.VITE_PORT) || 5173,
   },
 });

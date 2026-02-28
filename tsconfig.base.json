@@ -12,7 +12,8 @@
     "baseUrl": ".",
     "paths": {
       "@shared/*": ["packages/shared/src/*"],
-      "@utils/*": ["packages/utils/*"]
+      "@utils/*": ["packages/utils/*"],
+      "@forge/eslint-config": ["eslint.config.js"]
     }
   }
 }

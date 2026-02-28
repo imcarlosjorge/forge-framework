@@ -10,7 +10,7 @@
       "outputs": [],
       "cache": false,
       "persistent": true,
-      "env": ["PORT", "JWT_SECRET", "VITE_PORT"]
+      "env": ["PORT", "JWT_SECRET", "VITE_PORT", "VITE_API_URL"]
     },
     "lint": {},
     "test": {}

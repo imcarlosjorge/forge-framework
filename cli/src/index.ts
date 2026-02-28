@@ -471,7 +471,6 @@ VITE_API_URL=http://localhost:3001`
     });
 
     console.log('\n🎉 Projeto Forge criado com sucesso!');
-    console.log(`👉 Agora rode:\n   cd ${name}\n   forge dev full`);
   });
 
 // ------------------------ INFO ------------------------

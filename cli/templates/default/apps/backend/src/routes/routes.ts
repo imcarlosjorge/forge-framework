@@ -1,14 +1,10 @@
 import type { FastifyInstance } from "fastify";
+import type { Routes, InitialResponse } from "../types/routes.ts";
 
-export const routes = {
-  healthRoute: async (app: FastifyInstance) => {
-    app.get("/health", async () => {
+export const routes: Routes = {
+  initialRoute: async (app: FastifyInstance): Promise<void> => {
+    app.get("/", async (): Promise<InitialResponse> => {
       return { status: "ok" };
-    });
-  },
-  initialRoute: async (app: FastifyInstance) => {
-    app.get("/", async () => {
-      return { status: "ok", name: "Machado" };
     });
   },
 };

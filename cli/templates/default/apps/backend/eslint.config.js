@@ -1,42 +1,27 @@
-import js from "@eslint/js";
-import tseslint from "typescript-eslint";
-import importPlugin from "eslint-plugin-import";
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
 
-export const config = [
-  // 🔒 SEMPRE no topo (vale pra frontend + backend)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// sobe até o root do PROJETO GERADO (não do template)
+const rootEslintConfigPath = resolve(__dirname, "../../eslint.config.js");
+const { forgeBaseConfig } = await import(rootEslintConfigPath);
+
+const backendConfig = [
+  ...forgeBaseConfig,
   {
-    ignores: [
-      "**/dist/**", // builds
-      "**/node_modules/**", // deps em qualquer pacote
-      "**/*.d.ts", // tipos gerados
-      "**/.turbo/**", // cache do turbo
-    ],
-  },
-
-  js.configs.recommended,
-  ...tseslint.configs.recommended,
-
-  // regras globais
-  {
-    plugins: {
-      import: importPlugin,
-    },
+    files: ["**/*.ts"],
     rules: {
-      "import/no-default-export": "error",
-      "import/no-named-default": "error",
-      "import/no-anonymous-default-export": "error",
+      // se quiser algo específico de Node depois, entra aqui
     },
-  },
-
-  // exceções conscientes (configs)
-  {
-    files: [
-      "**/*.config.{js,ts}",
-      "**/eslint.config.js",
-      "**/stylelint.config.cjs", // 👈 boa prática incluir também
-    ],
-    rules: {
-      "import/no-default-export": "off",
+    settings: {
+      "import/resolver": {
+        typescript: {
+          project: resolve(__dirname, "../../tsconfig.base.json"), // caminho para o tsconfig do pacote ou da raiz
+        },
+      },
     },
   },
 ];
+export default backendConfig;

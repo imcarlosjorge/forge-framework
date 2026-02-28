@@ -1,22 +1,19 @@
-// AQUI ELE PEGA TYPESCRIPT já compilado, por isso está em JS
-// NÃO ALTERE
 console.log("DEBUG PORT:", process.env.PORT);
 
 import { app, registerPlugins } from "./app.config.js";
 import { routes } from "./routes/routes.js";
 
-async function main() {
+async function main(): Promise<void> {
   try {
     await registerPlugins();
 
     // registra rotas
-    await routes.healthRoute(app);
     await routes.initialRoute(app);
 
     // pega a porta do env (flag do Forge ou .env)
-    const rawPort = process.env.PORT;
+    const rawPort: string | undefined = process.env.PORT;
 
-    const port =
+    const port: number =
       rawPort && !Number.isNaN(Number(rawPort)) ? Number(rawPort) : 3333;
 
     console.log("🔎 PORT efetiva usada:", port);
@@ -30,4 +27,4 @@ async function main() {
   }
 }
 
-main();
+void main();

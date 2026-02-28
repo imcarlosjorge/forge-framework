@@ -1,17 +1,28 @@
 import { useState } from "react";
 import { Card, Button, Container } from "react-bootstrap";
 import styles from "../App.module.css";
+import type { JSX } from "react";
 
-export const Home = () => {
-  const [forjas, setForjas] = useState(0);
-  const [animar, setAnimar] = useState(false);
+// 🔒 tipagem explícita da constante (não só do retorno)
+export const Home: () => JSX.Element = (): JSX.Element => {
+  // 🔒 tipagem explícita dos bindings do useState
+  const [forjas, setForjas]: [
+    number,
+    React.Dispatch<React.SetStateAction<number>>,
+  ] = useState<number>(0);
 
-  const incrementarForjas = () => {
-    setForjas((prev) => {
-      const next = prev + 1;
+  const [animar, setAnimar]: [
+    boolean,
+    React.Dispatch<React.SetStateAction<boolean>>,
+  ] = useState<boolean>(false);
+
+  // 🔒 tipagem explícita da constante da função
+  const incrementarForjas: () => void = (): void => {
+    setForjas((prev: number): number => {
+      const next: number = prev + 1;
 
       setAnimar(true);
-      setTimeout(() => setAnimar(false), 300);
+      setTimeout((): void => setAnimar(false), 300);
 
       return next;
     });
