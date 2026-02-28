@@ -37,7 +37,7 @@ coverage/
 # Turborepo cache
 # =========================
 .turbo
-
+packages/**/.turbo/
 # =========================
 # Monorepo (packages)
 # =========================
