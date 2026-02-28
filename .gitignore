@@ -38,6 +38,9 @@ coverage/
 # =========================
 .turbo
 packages/**/.turbo/
+apps/**/.turbo/
+cli/.turbo
+cli/**/.turbo/
 # =========================
 # Monorepo (packages)
 # =========================
@@ -45,7 +48,6 @@ packages/**/node_modules/
 packages/**/dist/
 packages/**/.turbo/
 packages/**/.vite/
-
 # =========================
 # OS / Editor
 # =========================
